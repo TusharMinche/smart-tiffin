@@ -1,4 +1,4 @@
-// ============ src/components/chat/QuickChatButton.jsx ============
+// ============ src/components/chat/QuickChatButton.jsx - FIXED ============
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -6,6 +6,7 @@ import { FiMessageSquare, FiX } from 'react-icons/fi';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
 import { chatApi } from '../../api/chatApi';
+import { providerApi } from '../../api/providerApi';
 import { toast } from 'react-toastify';
 
 const QuickChatButton = ({ providerId, providerName }) => {
@@ -14,22 +15,45 @@ const QuickChatButton = ({ providerId, providerName }) => {
   const [showModal, setShowModal] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [providerOwnerId, setProviderOwnerId] = useState(null);
 
-  const handleQuickChat = async () => {
+  // Fetch provider details to get owner ID when modal opens
+  const handleOpenModal = async () => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
 
+    setShowModal(true);
+    
+    // Fetch provider details if we don't have owner ID yet
+    if (!providerOwnerId) {
+      try {
+        const response = await providerApi.getProvider(providerId);
+        setProviderOwnerId(response.data.provider.owner._id || response.data.provider.owner);
+      } catch (error) {
+        console.error('Failed to fetch provider details:', error);
+        toast.error('Failed to load provider details');
+        setShowModal(false);
+      }
+    }
+  };
+
+  const handleQuickChat = async () => {
     if (!message.trim()) {
       toast.error('Please enter a message');
+      return;
+    }
+
+    if (!providerOwnerId) {
+      toast.error('Failed to get provider information. Please try again.');
       return;
     }
 
     setLoading(true);
     try {
       await chatApi.sendMessage({
-        receiverId: providerId,
+        receiverId: providerOwnerId, // Use owner's user ID instead of provider ID
         message: message.trim(),
         messageType: 'text',
       });
@@ -40,10 +64,11 @@ const QuickChatButton = ({ providerId, providerName }) => {
       
       // Navigate to chat page
       setTimeout(() => {
-        navigate('/chat', { state: { providerId } });
+        navigate('/chat', { state: { userId: providerOwnerId } });
       }, 500);
     } catch (error) {
-      toast.error('Failed to send message');
+      console.error('Send message error:', error);
+      toast.error(error.response?.data?.message || 'Failed to send message');
     } finally {
       setLoading(false);
     }
@@ -53,13 +78,7 @@ const QuickChatButton = ({ providerId, providerName }) => {
     <>
       <Button
         variant="outline"
-        onClick={() => {
-          if (isAuthenticated) {
-            setShowModal(true);
-          } else {
-            navigate('/login');
-          }
-        }}
+        onClick={handleOpenModal}
       >
         <FiMessageSquare className="mr-2" />
         Quick Chat

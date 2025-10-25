@@ -1,4 +1,4 @@
-// ============ src/pages/ChatPage.jsx - ENHANCED VERSION ============
+// ============ src/pages/ChatPage.jsx - FIXED (No Duplicate Messages) ============
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
@@ -13,7 +13,7 @@ const ChatPage = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const { conversations, loading } = useSelector((state) => state.chat);
-  const { isAuthenticated, token } = useSelector((state) => state.auth);
+  const { user, isAuthenticated, token } = useSelector((state) => state.auth);
 
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,24 +33,23 @@ const ChatPage = () => {
       // Setup socket listeners
       socketService.on('message:received', handleNewMessage);
       socketService.on('typing:user', handleTyping);
-      socketService.on('message:sent', handleMessageSent);
     }
 
     return () => {
       socketService.off('message:received', handleNewMessage);
       socketService.off('typing:user', handleTyping);
-      socketService.off('message:sent', handleMessageSent);
     };
   }, [isAuthenticated, token, dispatch]);
 
-  // Handle provider ID from navigation state (when clicking chat from provider details)
+  // Handle provider/user ID from navigation state (when clicking chat from provider details or quick chat)
   useEffect(() => {
-    if (location.state?.providerId && conversations.length > 0) {
-      const providerConversation = conversations.find(
-        (conv) => conv.otherUser._id === location.state.providerId
+    const targetUserId = location.state?.providerId || location.state?.userId;
+    if (targetUserId && conversations.length > 0) {
+      const targetConversation = conversations.find(
+        (conv) => conv.otherUser._id === targetUserId
       );
-      if (providerConversation) {
-        handleSelectConversation(providerConversation);
+      if (targetConversation) {
+        handleSelectConversation(targetConversation);
       }
     }
   }, [location.state, conversations]);
@@ -68,23 +67,20 @@ const ChatPage = () => {
   }, [searchQuery, conversations]);
 
   const handleNewMessage = (data) => {
-    dispatch(addMessage(data.message));
-    
-    // Show notification if message is not from current conversation
-    if (selectedConversation?.conversationId !== data.message.conversationId) {
-      toast.info(`New message from ${data.message.sender.name}`, {
-        autoClose: 3000,
-      });
+    // Only add message if it's from another user (not our sent message)
+    if (data.message.sender._id !== user._id) {
+      dispatch(addMessage(data.message));
+      
+      // Show notification if message is not from current conversation
+      if (selectedConversation?.conversationId !== data.message.conversationId) {
+        toast.info(`New message from ${data.message.sender.name}`, {
+          autoClose: 3000,
+        });
+      }
     }
     
     // Refresh conversations to update last message
     dispatch(fetchConversations());
-  };
-
-  const handleMessageSent = (data) => {
-    if (data.success) {
-      dispatch(addMessage(data.message));
-    }
   };
 
   const handleTyping = (data) => {
@@ -131,11 +127,13 @@ const ChatPage = () => {
         attachments: messageData.attachments || [],
       };
 
-      // Emit through socket for real-time delivery
-      socketService.emit('message:send', payload);
+      // Send through API only - socket will handle real-time delivery via backend
+      const result = await dispatch(sendMessage(payload));
       
-      // Also send through API for persistence
-      await dispatch(sendMessage(payload));
+      // Only add to UI if API call was successful
+      if (result.type === 'chat/sendMessage/fulfilled') {
+        // Message already added via Redux fulfilled case, no need to add again
+      }
     } catch (error) {
       toast.error('Failed to send message');
       console.error('Send message error:', error);
