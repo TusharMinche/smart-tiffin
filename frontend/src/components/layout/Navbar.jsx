@@ -1,16 +1,16 @@
-// ============ src/components/layout/Navbar.jsx ============
+// ============ src/components/layout/Navbar.jsx - UPDATED ============
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { FiMenu, FiBell, FiUser, FiLogOut, FiSettings, FiMessageSquare } from 'react-icons/fi';
 import { logout } from '../../redux/slices/authSlice';
 import { getInitials, generateAvatarColor } from '../../utils/helpers';
+import UnreadChatBadge from '../chat/UnreadChatBadge';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
-  const { unreadCount } = useSelector((state) => state.chat);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleLogout = () => {
@@ -66,14 +66,10 @@ const Navbar = () => {
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
               <>
-                {/* Chat Icon */}
+                {/* Chat Icon with Badge */}
                 <Link to="/chat" className="relative p-2 text-gray-600 hover:text-primary-600 transition-colors">
                   <FiMessageSquare className="h-6 w-6" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-0 right-0 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                      {unreadCount}
-                    </span>
-                  )}
+                  <UnreadChatBadge />
                 </Link>
 
                 {/* Notifications */}
@@ -111,6 +107,14 @@ const Navbar = () => {
                         >
                           <FiUser className="mr-2" />
                           Profile
+                        </Link>
+                        <Link
+                          to="/chat"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          <FiMessageSquare className="mr-2" />
+                          Messages
                         </Link>
                         <Link
                           to="/settings"

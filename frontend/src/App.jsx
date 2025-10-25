@@ -1,4 +1,4 @@
-// ============ src/App.jsx ============
+// ============ src/App.jsx - UPDATED WITH CHAT ============
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -8,6 +8,9 @@ import 'react-toastify/dist/ReactToastify.css';
 // Layout
 import MainLayout from './components/layout/MainLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+
+// Chat Components
+import ChatNotification from './components/chat/ChatNotification';
 
 // Pages
 import Home from './pages/Home';
@@ -155,6 +158,10 @@ function App() {
         </Routes>
       </MainLayout>
 
+      {/* Global Chat Notification */}
+      {isAuthenticated && <ChatNotification />}
+
+      {/* Toast Container */}
       <ToastContainer
         position="top-right"
         autoClose={3000}

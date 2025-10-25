@@ -1,30 +1,41 @@
 // ============ src/pages/ProviderDetailsPage.jsx ============
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { FiMapPin, FiStar, FiClock, FiDollarSign, FiHeart, FiMessageSquare, FiShare2 } from 'react-icons/fi';
-import { fetchProvider } from '../redux/slices/providerSlice';
-import { reviewApi } from '../api/reviewApi';
-import { userApi } from '../api/userApi';
-import Card from '../components/common/Card';
-import Button from '../components/common/Button';
-import Badge from '../components/common/Badge';
-import Loader from '../components/common/Loader';
-import Modal from '../components/common/Modal';
-import ReviewForm from '../components/review/ReviewForm';
-import { formatCurrency } from '../utils/formatters';
-import { DAYS_OF_WEEK } from '../utils/constants';
-import { toast } from 'react-toastify';
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  FiMapPin,
+  FiStar,
+  FiClock,
+  FiDollarSign,
+  FiHeart,
+  FiMessageSquare,
+  FiShare2,
+} from "react-icons/fi";
+import { fetchProvider } from "../redux/slices/providerSlice";
+import { reviewApi } from "../api/reviewApi";
+import { userApi } from "../api/userApi";
+import Card from "../components/common/Card";
+import Button from "../components/common/Button";
+import Badge from "../components/common/Badge";
+import Loader from "../components/common/Loader";
+import Modal from "../components/common/Modal";
+import ReviewForm from "../components/review/ReviewForm";
+import { formatCurrency } from "../utils/formatters";
+import { DAYS_OF_WEEK } from "../utils/constants";
+import { toast } from "react-toastify";
+import QuickChatButton from "../components/chat/QuickChatButton";
 
 const ProviderDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { currentProvider: provider, loading } = useSelector((state) => state.provider);
+  const { currentProvider: provider, loading } = useSelector(
+    (state) => state.provider
+  );
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   const [reviews, setReviews] = useState([]);
-  const [activeTab, setActiveTab] = useState('menu');
+  const [activeTab, setActiveTab] = useState("menu");
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -38,49 +49,52 @@ const ProviderDetailsPage = () => {
       const response = await reviewApi.getProviderReviews(id);
       setReviews(response.data.reviews);
     } catch (error) {
-      console.error('Failed to load reviews');
+      console.error("Failed to load reviews");
     }
   };
 
   const handleFavoriteToggle = async () => {
     if (!isAuthenticated) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
     try {
       await userApi.toggleFavorite(id);
       setIsFavorite(!isFavorite);
-      toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
+      toast.success(
+        isFavorite ? "Removed from favorites" : "Added to favorites"
+      );
     } catch (error) {
-      toast.error('Failed to update favorites');
+      toast.error("Failed to update favorites");
     }
   };
 
   const handleChatClick = () => {
     if (!isAuthenticated) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
-    navigate('/chat', { state: { providerId: id } });
+    navigate("/chat", { state: { providerId: id } });
   };
 
   const handleSubscribe = () => {
     if (!isAuthenticated) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
     setShowSubscribeModal(true);
   };
 
   if (loading) return <Loader fullScreen />;
-  if (!provider) return <div className="text-center py-12">Provider not found</div>;
+  if (!provider)
+    return <div className="text-center py-12">Provider not found</div>;
 
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Hero Section */}
       <div className="relative h-96 bg-gradient-to-r from-primary-600 to-secondary-600">
         <img
-          src={provider.coverImage || 'https://via.placeholder.com/1200x400'}
+          src={provider.coverImage || "https://via.placeholder.com/1200x400"}
           alt={provider.businessName}
           className="w-full h-full object-cover opacity-30"
         />
@@ -94,7 +108,10 @@ const ProviderDetailsPage = () => {
                   </h1>
                   <div className="flex items-center text-gray-600 mb-3">
                     <FiMapPin className="h-5 w-5 mr-2" />
-                    <span>{provider.address.street}, {provider.address.city}, {provider.address.state}</span>
+                    <span>
+                      {provider.address.street}, {provider.address.city},{" "}
+                      {provider.address.state}
+                    </span>
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center">
@@ -112,28 +129,36 @@ const ProviderDetailsPage = () => {
                   </div>
                 </div>
 
-                <div className="flex space-x-3 mt-4 md:mt-0">
+                <div className="flex space-x-3 mt-4 md:mt-0 items-center">
                   <Button variant="outline" onClick={handleFavoriteToggle}>
-                    <FiHeart className={`mr-2 ${isFavorite ? 'fill-current text-red-500' : ''}`} />
+                    <FiHeart
+                      className={`mr-2 ${
+                        isFavorite ? "fill-current text-red-500" : ""
+                      }`}
+                    />
                     Favorite
                   </Button>
-                  <Button variant="outline" onClick={handleChatClick}>
-                    <FiMessageSquare className="mr-2" />
-                    Chat
-                  </Button>
-                  <Button onClick={handleSubscribe}>
-                    Subscribe Now
-                  </Button>
+
+                  <QuickChatButton
+                    providerId={provider._id}
+                    providerName={provider.businessName}
+                  />
+
+                  <Button onClick={handleSubscribe}>Subscribe Now</Button>
                 </div>
               </div>
 
               {/* Tags */}
               <div className="flex flex-wrap gap-2 mt-4">
                 {provider.cuisines.map((cuisine, index) => (
-                  <Badge key={index} variant="primary">{cuisine}</Badge>
+                  <Badge key={index} variant="primary">
+                    {cuisine}
+                  </Badge>
                 ))}
                 {provider.specialties.map((specialty, index) => (
-                  <Badge key={index} variant="success">{specialty}</Badge>
+                  <Badge key={index} variant="success">
+                    {specialty}
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -146,14 +171,14 @@ const ProviderDetailsPage = () => {
         {/* Tabs */}
         <div className="border-b border-gray-200 mb-8">
           <div className="flex space-x-8">
-            {['menu', 'weekly', 'pricing', 'reviews', 'about'].map((tab) => (
+            {["menu", "weekly", "pricing", "reviews", "about"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`pb-4 px-2 font-medium capitalize transition-colors ${
                   activeTab === tab
-                    ? 'border-b-2 border-primary-600 text-primary-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? "border-b-2 border-primary-600 text-primary-600"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
               >
                 {tab}
@@ -163,11 +188,17 @@ const ProviderDetailsPage = () => {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'menu' && <MenuTab provider={provider} />}
-        {activeTab === 'weekly' && <WeeklyMenuTab provider={provider} />}
-        {activeTab === 'pricing' && <PricingTab provider={provider} />}
-        {activeTab === 'reviews' && <ReviewsTab reviews={reviews} providerId={id} onReviewAdded={loadReviews} />}
-        {activeTab === 'about' && <AboutTab provider={provider} />}
+        {activeTab === "menu" && <MenuTab provider={provider} />}
+        {activeTab === "weekly" && <WeeklyMenuTab provider={provider} />}
+        {activeTab === "pricing" && <PricingTab provider={provider} />}
+        {activeTab === "reviews" && (
+          <ReviewsTab
+            reviews={reviews}
+            providerId={id}
+            onReviewAdded={loadReviews}
+          />
+        )}
+        {activeTab === "about" && <AboutTab provider={provider} />}
       </div>
 
       {/* Subscribe Modal */}
@@ -183,7 +214,7 @@ const ProviderDetailsPage = () => {
 // Menu Tab Component
 const MenuTab = ({ provider }) => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {['breakfast', 'lunch', 'dinner'].map((mealType) => (
+    {["breakfast", "lunch", "dinner"].map((mealType) => (
       <Card key={mealType}>
         <h3 className="text-2xl font-semibold text-gray-900 mb-4 capitalize flex items-center">
           <FiClock className="mr-2 text-primary-600" />
@@ -192,7 +223,10 @@ const MenuTab = ({ provider }) => (
         <div className="space-y-3">
           {provider.menu[mealType]?.length > 0 ? (
             provider.menu[mealType].map((item, index) => (
-              <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <div
+                key={index}
+                className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
+              >
                 <div>
                   <p className="font-medium text-gray-900">{item.name}</p>
                   {item.description && (
@@ -216,15 +250,25 @@ const MenuTab = ({ provider }) => (
 // Weekly Menu Tab
 const WeeklyMenuTab = ({ provider }) => (
   <Card>
-    <h3 className="text-2xl font-semibold text-gray-900 mb-6">This Week's Menu</h3>
+    <h3 className="text-2xl font-semibold text-gray-900 mb-6">
+      This Week's Menu
+    </h3>
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
         <thead>
           <tr>
-            <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Day</th>
-            <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Breakfast</th>
-            <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Lunch</th>
-            <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Dinner</th>
+            <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+              Day
+            </th>
+            <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+              Breakfast
+            </th>
+            <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+              Lunch
+            </th>
+            <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+              Dinner
+            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -234,9 +278,15 @@ const WeeklyMenuTab = ({ provider }) => (
                 <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
                   {dayMenu.day}
                 </td>
-                <td className="px-6 py-4 text-gray-600">{dayMenu.meals.breakfast}</td>
-                <td className="px-6 py-4 text-gray-600">{dayMenu.meals.lunch}</td>
-                <td className="px-6 py-4 text-gray-600">{dayMenu.meals.dinner}</td>
+                <td className="px-6 py-4 text-gray-600">
+                  {dayMenu.meals.breakfast}
+                </td>
+                <td className="px-6 py-4 text-gray-600">
+                  {dayMenu.meals.lunch}
+                </td>
+                <td className="px-6 py-4 text-gray-600">
+                  {dayMenu.meals.dinner}
+                </td>
               </tr>
             ))
           ) : (
@@ -255,19 +305,24 @@ const WeeklyMenuTab = ({ provider }) => (
 // Pricing Tab
 const PricingTab = ({ provider }) => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {['daily', 'weekly', 'monthly'].map((planType) => (
-      <Card key={planType} className="border-2 border-gray-200 hover:border-primary-600 transition-colors">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2 capitalize">{planType} Plan</h3>
+    {["daily", "weekly", "monthly"].map((planType) => (
+      <Card
+        key={planType}
+        className="border-2 border-gray-200 hover:border-primary-600 transition-colors"
+      >
+        <h3 className="text-2xl font-bold text-gray-900 mb-2 capitalize">
+          {planType} Plan
+        </h3>
         <div className="space-y-4 mb-6">
-          {['breakfast', 'lunch', 'dinner', 'fullDay'].map((mealType) => (
+          {["breakfast", "lunch", "dinner", "fullDay"].map((mealType) => (
             <div key={mealType} className="flex justify-between items-center">
               <span className="text-gray-600 capitalize">
-                {mealType === 'fullDay' ? 'Full Day' : mealType}
+                {mealType === "fullDay" ? "Full Day" : mealType}
               </span>
               <span className="text-xl font-bold text-primary-600">
                 {provider.pricing[planType]?.[mealType]
                   ? formatCurrency(provider.pricing[planType][mealType])
-                  : 'N/A'}
+                  : "N/A"}
               </span>
             </div>
           ))}
@@ -286,9 +341,13 @@ const ReviewsTab = ({ reviews, providerId, onReviewAdded }) => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-2xl font-semibold text-gray-900">Customer Reviews</h3>
+        <h3 className="text-2xl font-semibold text-gray-900">
+          Customer Reviews
+        </h3>
         {isAuthenticated && (
-          <Button onClick={() => setShowReviewForm(true)}>Write a Review</Button>
+          <Button onClick={() => setShowReviewForm(true)}>
+            Write a Review
+          </Button>
         )}
       </div>
 
@@ -306,13 +365,17 @@ const ReviewsTab = ({ reviews, providerId, onReviewAdded }) => {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-gray-900">{review.user.name}</h4>
+                    <h4 className="font-semibold text-gray-900">
+                      {review.user.name}
+                    </h4>
                     <div className="flex items-center">
                       {[...Array(5)].map((_, i) => (
                         <FiStar
                           key={i}
                           className={`h-4 w-4 ${
-                            i < review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                            i < review.rating
+                              ? "text-yellow-500 fill-current"
+                              : "text-gray-300"
                           }`}
                         />
                       ))}
@@ -329,7 +392,9 @@ const ReviewsTab = ({ reviews, providerId, onReviewAdded }) => {
             </Card>
           ))
         ) : (
-          <p className="text-center text-gray-500 py-8">No reviews yet. Be the first to review!</p>
+          <p className="text-center text-gray-500 py-8">
+            No reviews yet. Be the first to review!
+          </p>
         )}
       </div>
     </div>
@@ -343,17 +408,18 @@ const AboutTab = ({ provider }) => (
       <Card>
         <h3 className="text-2xl font-semibold text-gray-900 mb-4">About Us</h3>
         <p className="text-gray-600 leading-relaxed">
-          {provider.description || 'No description available.'}
+          {provider.description || "No description available."}
         </p>
 
         <div className="mt-6">
           <h4 className="font-semibold text-gray-900 mb-3">Timings</h4>
           <div className="space-y-2">
-            {['breakfast', 'lunch', 'dinner'].map((meal) => (
+            {["breakfast", "lunch", "dinner"].map((meal) => (
               <div key={meal} className="flex justify-between items-center">
                 <span className="text-gray-600 capitalize">{meal}</span>
                 <span className="text-gray-900">
-                  {provider.timings?.[meal]?.from} - {provider.timings?.[meal]?.to}
+                  {provider.timings?.[meal]?.from} -{" "}
+                  {provider.timings?.[meal]?.to}
                 </span>
               </div>
             ))}
@@ -364,7 +430,9 @@ const AboutTab = ({ provider }) => (
 
     <div>
       <Card>
-        <h3 className="text-xl font-semibold text-gray-900 mb-4">Contact Information</h3>
+        <h3 className="text-xl font-semibold text-gray-900 mb-4">
+          Contact Information
+        </h3>
         <div className="space-y-3">
           <div>
             <p className="text-sm text-gray-500">Phone</p>
@@ -377,8 +445,10 @@ const AboutTab = ({ provider }) => (
           <div>
             <p className="text-sm text-gray-500">Address</p>
             <p className="text-gray-900">
-              {provider.address.street}<br />
-              {provider.address.city}, {provider.address.state}<br />
+              {provider.address.street}
+              <br />
+              {provider.address.city}, {provider.address.state}
+              <br />
               {provider.address.pincode}
             </p>
           </div>
@@ -395,11 +465,11 @@ const AboutTab = ({ provider }) => (
 // Subscribe Modal Component
 const SubscribeModal = ({ isOpen, onClose, provider }) => {
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState('weekly');
-  const [selectedMeal, setSelectedMeal] = useState('fullDay');
+  const [selectedPlan, setSelectedPlan] = useState("weekly");
+  const [selectedMeal, setSelectedMeal] = useState("fullDay");
 
   const handleSubscribe = () => {
-    navigate('/subscriptions/new', {
+    navigate("/subscriptions/new", {
       state: {
         provider: provider._id,
         planType: selectedPlan,
@@ -412,16 +482,18 @@ const SubscribeModal = ({ isOpen, onClose, provider }) => {
     <Modal isOpen={isOpen} onClose={onClose} title="Choose Your Plan">
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Plan Type</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Plan Type
+          </label>
           <div className="grid grid-cols-3 gap-3">
-            {['daily', 'weekly', 'monthly'].map((plan) => (
+            {["daily", "weekly", "monthly"].map((plan) => (
               <button
                 key={plan}
                 onClick={() => setSelectedPlan(plan)}
                 className={`px-4 py-3 rounded-lg border-2 font-medium capitalize transition-colors ${
                   selectedPlan === plan
-                    ? 'border-primary-600 bg-primary-50 text-primary-600'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? "border-primary-600 bg-primary-50 text-primary-600"
+                    : "border-gray-200 hover:border-gray-300"
                 }`}
               >
                 {plan}
@@ -431,19 +503,21 @@ const SubscribeModal = ({ isOpen, onClose, provider }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Meal Type</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Meal Type
+          </label>
           <div className="grid grid-cols-2 gap-3">
-            {['breakfast', 'lunch', 'dinner', 'fullDay'].map((meal) => (
+            {["breakfast", "lunch", "dinner", "fullDay"].map((meal) => (
               <button
                 key={meal}
                 onClick={() => setSelectedMeal(meal)}
                 className={`px-4 py-3 rounded-lg border-2 font-medium capitalize transition-colors ${
                   selectedMeal === meal
-                    ? 'border-primary-600 bg-primary-50 text-primary-600'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? "border-primary-600 bg-primary-50 text-primary-600"
+                    : "border-gray-200 hover:border-gray-300"
                 }`}
               >
-                {meal === 'fullDay' ? 'Full Day' : meal}
+                {meal === "fullDay" ? "Full Day" : meal}
               </button>
             ))}
           </div>
@@ -453,7 +527,9 @@ const SubscribeModal = ({ isOpen, onClose, provider }) => {
           <div className="flex justify-between items-center mb-2">
             <span className="text-gray-600">Total Amount</span>
             <span className="text-2xl font-bold text-primary-600">
-              {formatCurrency(provider.pricing[selectedPlan]?.[selectedMeal] || 0)}
+              {formatCurrency(
+                provider.pricing[selectedPlan]?.[selectedMeal] || 0
+              )}
             </span>
           </div>
           <p className="text-sm text-gray-500">per {selectedPlan}</p>

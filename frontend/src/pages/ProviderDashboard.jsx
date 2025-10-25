@@ -9,6 +9,7 @@ import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { toast } from 'react-toastify';
+import Loader from '../components/common/Loader';
 
 // Stat Card Component
 const StatCard = ({ title, value, icon: Icon, color }) => (
