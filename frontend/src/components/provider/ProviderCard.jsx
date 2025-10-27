@@ -1,10 +1,11 @@
-// ============ src/components/provider/ProviderCard.jsx ============
+// ============ frontend/src/components/provider/ProviderCard.jsx - UPDATED WITH DISTANCE ============
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FiMapPin, FiStar, FiHeart } from 'react-icons/fi';
 import { formatCurrency } from '../../utils/formatters';
 import Card from '../common/Card';
 import Badge from '../common/Badge';
+import DistanceBadge from '../common/DistanceBadge';
 
 const ProviderCard = ({ provider, onFavoriteToggle }) => {
   return (
@@ -33,6 +34,18 @@ const ProviderCard = ({ provider, onFavoriteToggle }) => {
           <FiMapPin className="h-4 w-4 mr-1" />
           <span>{provider.address.city}, {provider.address.state}</span>
         </div>
+
+        {/* Distance Badge */}
+        {provider.address?.coordinates?.lat && provider.address?.coordinates?.lng && (
+          <div className="mb-3">
+            <DistanceBadge
+              providerLat={provider.address.coordinates.lat}
+              providerLng={provider.address.coordinates.lng}
+              showTravelTime={true}
+              size="sm"
+            />
+          </div>
+        )}
 
         <div className="flex items-center mb-3">
           <FiStar className="h-4 w-4 text-yellow-500 mr-1" />
@@ -82,4 +95,3 @@ const ProviderCard = ({ provider, onFavoriteToggle }) => {
 };
 
 export default ProviderCard;
-

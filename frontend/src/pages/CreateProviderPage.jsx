@@ -1,4 +1,4 @@
-// ============ src/pages/CreateProviderPage.jsx ============
+// ============ frontend/src/pages/CreateProviderPage.jsx - UPDATED WITH LOCATION ============
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiMapPin, FiPhone, FiMail } from 'react-icons/fi';
@@ -6,6 +6,7 @@ import { providerApi } from '../api/providerApi';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
+import LocationPicker from '../components/common/LocationPicker';
 import { CUISINES, SPECIALTIES } from '../utils/constants';
 import { toast } from 'react-toastify';
 
@@ -23,8 +24,8 @@ const CreateProviderPage = () => {
       state: '',
       pincode: '',
       coordinates: {
-        lat: 18.5204, // Default to Pune
-        lng: 73.8567,
+        lat: null,
+        lng: null,
       },
     },
     cuisines: [],
@@ -42,6 +43,16 @@ const CreateProviderPage = () => {
     } else {
       setFormData({ ...formData, [name]: value });
     }
+  };
+
+  const handleLocationChange = (coordinates) => {
+    setFormData({
+      ...formData,
+      address: {
+        ...formData.address,
+        coordinates: coordinates,
+      },
+    });
   };
 
   const handleCuisineToggle = (cuisine) => {
@@ -63,6 +74,11 @@ const CreateProviderPage = () => {
     
     if (formData.cuisines.length === 0) {
       toast.error('Please select at least one cuisine');
+      return;
+    }
+
+    if (!formData.address.coordinates.lat || !formData.address.coordinates.lng) {
+      toast.error('Please set your business location');
       return;
     }
 
@@ -141,12 +157,29 @@ const CreateProviderPage = () => {
           </div>
         </Card>
 
-        {/* Address */}
+        {/* Address & Location */}
         <Card className="mb-6">
           <h2 className="text-2xl font-semibold text-gray-900 mb-4">
             <FiMapPin className="inline mr-2" />
-            Address
+            Business Location
           </h2>
+
+          {/* Location Picker */}
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800 mb-2">
+              📍 <strong>Important:</strong> Set your exact business location for customers to find you easily
+            </p>
+            <p className="text-xs text-blue-600">
+              This helps customers see distance and delivery time estimates
+            </p>
+          </div>
+
+          <LocationPicker
+            value={formData.address.coordinates}
+            onChange={handleLocationChange}
+            label="Business Location"
+            required
+          />
 
           <Input
             label="Street Address"
@@ -189,10 +222,6 @@ const CreateProviderPage = () => {
               required
             />
           </div>
-
-          <p className="text-sm text-gray-500 mt-2">
-            Note: Coordinates will be automatically geocoded from your address
-          </p>
         </Card>
 
         {/* Cuisines */}

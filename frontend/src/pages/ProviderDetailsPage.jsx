@@ -5,7 +5,6 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   FiMapPin,
   FiStar,
-  FiClock,
   FiDollarSign,
   FiHeart,
   FiMessageSquare,
@@ -24,6 +23,9 @@ import { formatCurrency } from "../utils/formatters";
 import { DAYS_OF_WEEK } from "../utils/constants";
 import { toast } from "react-toastify";
 import QuickChatButton from "../components/chat/QuickChatButton";
+import { FiClock, FiNavigation } from "react-icons/fi";
+import locationService from "../services/locationService";
+import DistanceBadge from "../components/common/DistanceBadge";
 
 const ProviderDetailsPage = () => {
   const { id } = useParams();
@@ -401,66 +403,174 @@ const ReviewsTab = ({ reviews, providerId, onReviewAdded }) => {
   );
 };
 
-// About Tab
-const AboutTab = ({ provider }) => (
-  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div className="lg:col-span-2">
-      <Card>
-        <h3 className="text-2xl font-semibold text-gray-900 mb-4">About Us</h3>
-        <p className="text-gray-600 leading-relaxed">
-          {provider.description || "No description available."}
-        </p>
+// ============ Enhanced About Tab with Location Info ============
+const AboutTab = ({ provider }) => {
+  const [mapUrl, setMapUrl] = useState('');
 
-        <div className="mt-6">
-          <h4 className="font-semibold text-gray-900 mb-3">Timings</h4>
-          <div className="space-y-2">
-            {["breakfast", "lunch", "dinner"].map((meal) => (
-              <div key={meal} className="flex justify-between items-center">
-                <span className="text-gray-600 capitalize">{meal}</span>
-                <span className="text-gray-900">
-                  {provider.timings?.[meal]?.from} -{" "}
-                  {provider.timings?.[meal]?.to}
-                </span>
+  useEffect(() => {
+    if (provider.address?.coordinates?.lat && provider.address?.coordinates?.lng) {
+      const { lat, lng } = provider.address.coordinates;
+      const apiKey = process.env.REACT_APP_GOOGLE_MAPS_KEY;
+      if (apiKey) {
+        setMapUrl(
+          `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=600x300&markers=color:red%7C${lat},${lng}&key=${apiKey}`
+        );
+      }
+    }
+  }, [provider]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2">
+        <Card>
+          <h3 className="text-2xl font-semibold text-gray-900 mb-4">About Us</h3>
+          <p className="text-gray-600 leading-relaxed">
+            {provider.description || "No description available."}
+          </p>
+
+          <div className="mt-6">
+            <h4 className="font-semibold text-gray-900 mb-3">Timings</h4>
+            <div className="space-y-2">
+              {["breakfast", "lunch", "dinner"].map((meal) => (
+                <div key={meal} className="flex justify-between items-center">
+                  <span className="text-gray-600 capitalize">{meal}</span>
+                  <span className="text-gray-900">
+                    {provider.timings?.[meal]?.from} -{" "}
+                    {provider.timings?.[meal]?.to}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Location Map */}
+          {mapUrl && (
+            <div className="mt-6">
+              <h4 className="font-semibold text-gray-900 mb-3">Location Map</h4>
+              <div className="rounded-lg overflow-hidden border border-gray-200">
+                <img src={mapUrl} alt="Provider Location" className="w-full" />
               </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-    </div>
+            </div>
+          )}
+        </Card>
+      </div>
 
-    <div>
-      <Card>
-        <h3 className="text-xl font-semibold text-gray-900 mb-4">
-          Contact Information
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <p className="text-sm text-gray-500">Phone</p>
-            <p className="text-gray-900">{provider.phone}</p>
+      <div>
+        {/* Contact Information */}
+        <Card className="mb-6">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+            Contact Information
+          </h3>
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm text-gray-500">Phone</p>
+              <a href={`tel:${provider.phone}`} className="text-gray-900 hover:text-primary-600">
+                {provider.phone}
+              </a>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Email</p>
+              <a href={`mailto:${provider.email}`} className="text-gray-900 hover:text-primary-600">
+                {provider.email}
+              </a>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Address</p>
+              <p className="text-gray-900">
+                {provider.address.street}
+                <br />
+                {provider.address.city}, {provider.address.state}
+                <br />
+                {provider.address.pincode}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Email</p>
-            <p className="text-gray-900">{provider.email}</p>
+
+          {/* Distance Information */}
+          {provider.address?.coordinates?.lat && provider.address?.coordinates?.lng && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <DistanceBadge
+                providerLat={provider.address.coordinates.lat}
+                providerLng={provider.address.coordinates.lng}
+                showTravelTime={true}
+                size="md"
+                className="w-full justify-center"
+              />
+            </div>
+          )}
+
+          {/* Map Buttons */}
+          <div className="mt-4 space-y-2">
+            {provider.address?.coordinates?.lat && provider.address?.coordinates?.lng && (
+              <>
+                <Button 
+                  fullWidth 
+                  variant="outline"
+                  onClick={() => {
+                    const { lat, lng } = provider.address.coordinates;
+                    window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+                  }}
+                >
+                  <FiMapPin className="mr-2" />
+                  Open in Google Maps
+                </Button>
+                
+                <Button 
+                  fullWidth 
+                  variant="outline"
+                  onClick={() => {
+                    const { lat, lng } = provider.address.coordinates;
+                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+                  }}
+                >
+                  <FiNavigation className="mr-2" />
+                  Get Directions
+                </Button>
+              </>
+            )}
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Address</p>
-            <p className="text-gray-900">
-              {provider.address.street}
-              <br />
-              {provider.address.city}, {provider.address.state}
-              <br />
-              {provider.address.pincode}
-            </p>
+        </Card>
+
+        {/* Delivery Area Info */}
+        <Card>
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+            Delivery Information
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-start space-x-2">
+              <FiMapPin className="h-5 w-5 text-primary-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-gray-900">Service Area</p>
+                <p className="text-sm text-gray-600">
+                  Delivering within {provider.address.city} and nearby areas
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start space-x-2">
+              <FiClock className="h-5 w-5 text-primary-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-gray-900">Delivery Times</p>
+                <p className="text-sm text-gray-600">
+                  Check timings above for each meal
+                </p>
+              </div>
+            </div>
+
+            {locationService.hasUserLocation() && (
+              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-sm text-green-800">
+                  ✓ This provider delivers to your location
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-        <Button fullWidth className="mt-4" variant="outline">
-          <FiMapPin className="mr-2" />
-          View on Map
-        </Button>
-      </Card>
+        </Card>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
 
 // Subscribe Modal Component
 const SubscribeModal = ({ isOpen, onClose, provider }) => {
